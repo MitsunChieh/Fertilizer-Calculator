@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>營養液成分計算機</title>
+    <title>營養液反向計算機</title>
     <style>
         .container {
             max-width: 800px;
@@ -173,11 +173,23 @@
             margin-bottom: 10px;
             transition: background-color 0.2s;
         }
-
         .test-btn:hover {
             background-color: #2980b9;
         }
-
+        
+        /* 新增的樣式 */
+        .target-input {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .target-row td {
+            padding: 8px;
+            vertical-align: middle;
+        }
         /* 添加導航按鈕樣式 */
         .nav-button {
             display: inline-block;
@@ -195,48 +207,89 @@
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
+        .input-mode-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: flex-end;
+        }
+
+        .mode-btn {
+            padding: 6px 12px;
+            border: 1px solid #4299e1;
+            background-color: white;
+            color: #4299e1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        .target-input[disabled] {
+            background-color: #f7fafc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>營養液成分計算機</h1>
+        <h1>營養液反向計算機</h1>
         
-        <!-- 添加導航按鈕 -->
-        <a href="reverse-calculator.html" class="nav-button">反向計算機</a>
-        
-        <!-- 肥料選擇區域 -->
-        <div class="fertilizer-selector">
-            <h2>選擇肥料</h2>
-            <button id="preset-button-1" onclick="loadPreset1()" class="test-btn">預設配方 1</button>
-            <button id="preset-button-2" onclick="loadPreset2()" class="test-btn">預設配方 2</button>
+        <!-- 添加返回按鈕 -->
+        <a href="index.html" class="nav-button">
+            ← 返回成分計算機
+        </a>
+
+        <!-- 目標養分輸入區域 -->
+        <div class="fertilizer-list">
+            <h2>目標養分含量</h2>
+            <div class="input-mode-switch">
+                <button class="mode-btn active" data-mode="ppm">ppm 模式</button>
+                <button class="mode-btn" data-mode="meq">meq/L 模式</button>
+            </div>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>元素</th>
+                        <th>目標 ppm</th>
+                        <th>目標 meq/L</th>
+                        <th>目標 mmol/L</th>
+                    </tr>
+                </thead>
+                <tbody id="target-nutrients">
+                    <!-- 將由 JavaScript 動態填充 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 可用肥料清單 -->
+        <div class="fertilizer-list">
+            <h2>可用肥料</h2>
             <input type="text" id="fertilizer-search" placeholder="輸入肥料名稱或分子式搜尋...">
             <select id="fertilizer-select" size="5">
                 <option value="">請選擇肥料...</option>
             </select>
-            <input type="number" id="amount" placeholder="輸入用量(mg/L)" step="0.1">
-            <button onclick="addFertilizer()">添加</button>
+            <button onclick="addAvailableFertilizer()" class="test-btn">添加到可用肥料</button>
         </div>
 
-        <!-- 已選擇肥料清單 -->
+        <!-- 已選擇的可用肥料 -->
         <div class="fertilizer-list">
-            <h2>已選擇的肥料</h2>
-            <ul id="selected-fertilizers"></ul>
+            <h2>已選擇的可用肥料</h2>
+            <ul id="available-fertilizers"></ul>
         </div>
 
         <!-- 計算結果 -->
-        <div class="calculation-results">
-            <h2>養分含量</h2>
-            <table class="result-table">
-                <tr>
-                    <th>元素</th>
-                    <th>ppm</th>
-                    <th>meq/L</th>
-                    <th>mmol/L</th>
-                </tr>
-                <tbody id="results-body">
-                    <!-- 結果將由JavaScript動態填充 -->
-                </tbody>
-            </table>
+        <div class="fertilizer-list">
+            <h2>計算結果</h2>
+            <button onclick="calculateFertilizers()" class="test-btn">計算肥料用量</button>
+            <div id="calculation-results">
+                <!-- 計算結果將由 JavaScript 動態填充 -->
+            </div>
         </div>
     </div>
 
@@ -399,239 +452,75 @@
             { value: '(NH4)6Mo7O24·4H2O', label: '仲鉬酸銨（四水） (NH4)6Mo7O24·4H2O' },
             { value: '(NH4)2MoO4', label: '鉬酸銨 (NH4)2MoO4' }
         ];
+        
+        // 添加反向計算的特定函數
+        // ... 
 
-        // 初始化肥料選單
-        function initializeFertilizerSelect() {
-            const select = document.getElementById('fertilizer-select');
-            updateFertilizerOptions(fertilizerList);
-        }
+        // 全局變量
+        let availableFertilizers = [];
+        let targetNutrients = {
+            'N': { ppm: 0, meq: 0, mmol: 0 },
+            'P': { ppm: 0, meq: 0, mmol: 0 },
+            'K': { ppm: 0, meq: 0, mmol: 0 },
+            'Ca': { ppm: 0, meq: 0, mmol: 0 },
+            'Mg': { ppm: 0, meq: 0, mmol: 0 },
+            'S': { ppm: 0, meq: 0, mmol: 0 },
+            'Fe': { ppm: 0, meq: 0, mmol: 0 },
+            'Mn': { ppm: 0, meq: 0, mmol: 0 },
+            'Zn': { ppm: 0, meq: 0, mmol: 0 },
+            'Cu': { ppm: 0, meq: 0, mmol: 0 },
+            'B': { ppm: 0, meq: 0, mmol: 0 },
+            'Mo': { ppm: 0, meq: 0, mmol: 0 },
+            'Cl': { ppm: 0, meq: 0, mmol: 0 }
+        };
 
-        // 更新肥料選項
-        function updateFertilizerOptions(options) {
-            const select = document.getElementById('fertilizer-select');
-            select.innerHTML = '<option value="">請選擇肥料...</option>';
-            options.forEach(option => {
-                const optElement = document.createElement('option');
-                optElement.value = option.value;
-                optElement.textContent = option.label;
-                select.appendChild(optElement);
-            });
-        }
+        let currentInputMode = 'ppm';  // 預設使用 ppm 模式
 
-        // 搜尋肥料
-        function searchFertilizers(searchText) {
-            const filteredList = fertilizerList.filter(fertilizer => {
-                const searchLower = searchText.toLowerCase();
-                return fertilizer.label.toLowerCase().includes(searchLower) || 
-                       fertilizer.value.toLowerCase().includes(searchLower);
-            });
-            updateFertilizerOptions(filteredList);
-        }
-
-        // 添加事件監聽器
+        // 初始化頁面
         document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        // 初始化頁面
+        function initializePage() {
+            // 初始化肥料選擇器
             initializeFertilizerSelect();
             
+            // 初始化目標養分輸入表格
+            initializeTargetNutrients();
+            
+            // 初始化搜尋功能
             const searchInput = document.getElementById('fertilizer-search');
             searchInput.addEventListener('input', function(e) {
                 searchFertilizers(e.target.value);
             });
+            
+            // 初始化模式切換按鈕
+            initializeInputModeSwitch();
+        }
 
-            // 添加鍵盤快捷鍵支援
+        // 初始化肥料選擇器
+        function initializeFertilizerSelect() {
             const select = document.getElementById('fertilizer-select');
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    select.focus();
-                    if (select.options.length > 0) {
-                        select.selectedIndex = 0;
-                    }
-                }
-            });
-        });
-
-        function addFertilizer() {
-            const select = document.getElementById('fertilizer-select');
-            const amount = document.getElementById('amount').value;
+            select.innerHTML = '<option value="">請選擇肥料...</option>';
             
-            if (select.value && amount) {
-                const existingIndex = selectedFertilizers.findIndex(f => f.formula === select.value);
-                
-                if (existingIndex !== -1) {
-                    // 如果存在，加上新的數量
-                    selectedFertilizers[existingIndex].amount = roundNumber(
-                        selectedFertilizers[existingIndex].amount + parseFloat(amount)
-                    );
-                } else {
-                    // 如果不存在，新增一條
-                    selectedFertilizers.push({
-                        formula: select.value,
-                        amount: roundNumber(parseFloat(amount))
-                    });
-                }
-                
-                document.getElementById('amount').value = '';
-                updateFertilizerList();
-                calculateNutrients();
-            }
-        }
-
-        function updateFertilizerList() {
-            const list = document.getElementById('selected-fertilizers');
-            list.innerHTML = '';
-            
-            if (selectedFertilizers.length === 0) {
-                const emptyMessage = document.createElement('div');
-                emptyMessage.className = 'no-fertilizers';
-                emptyMessage.textContent = '尚未添加任何肥料';
-                list.appendChild(emptyMessage);
-                return;
-            }
-
-            selectedFertilizers.forEach((fert, index) => {
-                const li = document.createElement('li');
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'fertilizer-info';
-                
-                // 查找肥料的中文名稱
-                const fertilizerInfo = fertilizerList.find(f => f.value === fert.formula);
-                const displayName = fertilizerInfo ? fertilizerInfo.label : fert.formula;
-                
-                const formula = document.createElement('span');
-                formula.className = 'formula';
-                formula.textContent = displayName;  // 使用中文名稱
-                
-                const amountContainer = document.createElement('div');
-                amountContainer.className = 'amount';
-
-                // 顯示用量的元素
-                const amountDisplay = document.createElement('span');
-                amountDisplay.className = 'amount-display';
-                amountDisplay.textContent = `${formatNumber(fert.amount)} mg/L`;
-                amountDisplay.onclick = () => startEditing(amountContainer, fert, index);
-                
-                amountContainer.appendChild(amountDisplay);
-                infoDiv.appendChild(formula);
-                infoDiv.appendChild(amountContainer);
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '移除';
-                removeBtn.onclick = () => {
-                    selectedFertilizers.splice(index, 1);
-                    updateFertilizerList();
-                    calculateNutrients();
-                };
-                
-                li.appendChild(infoDiv);
-                li.appendChild(removeBtn);
-                list.appendChild(li);
+            fertilizerList.forEach(fertilizer => {
+                const option = document.createElement('option');
+                option.value = fertilizer.value;
+                option.textContent = fertilizer.label;
+                select.appendChild(option);
             });
         }
 
-        function startEditing(container, fert, index) {
-            // 清空容器
-            container.innerHTML = '';
-            
-            // 創建輸入框
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.className = 'amount-input';
-            input.value = fert.amount;
-            input.step = '0.001';
-            
-            // 創建按鈕容器
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'edit-controls';
-            
-            // 創建保存按鈕
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'edit-btn save-btn';
-            saveBtn.textContent = '✓';
-            saveBtn.onclick = () => {
-                const newAmount = roundNumber(parseFloat(input.value));
-                if (newAmount > 0) {
-                    selectedFertilizers[index].amount = newAmount;
-                    updateFertilizerList();
-                    calculateNutrients();
-                }
-            };
-            
-            // 創建取消按鈕
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'edit-btn cancel-btn';
-            cancelBtn.textContent = '✕';
-            cancelBtn.onclick = () => {
-                updateFertilizerList();
-            };
-            
-            // 添加到容器
-            buttonContainer.appendChild(saveBtn);
-            buttonContainer.appendChild(cancelBtn);
-            container.appendChild(input);
-            container.appendChild(buttonContainer);
-            
-            // 聚焦到輸入框
-            input.focus();
-            input.select();
-
-            // 添加鍵盤事件處理
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    saveBtn.click();
-                } else if (e.key === 'Escape') {
-                    cancelBtn.click();
-                }
-            });
-        }
-
-        function calculateNutrients() {
-            const results = {
-                'N': { ppm: 0, meq: 0, mmol: 0 },
-                'P': { ppm: 0, meq: 0, mmol: 0 },
-                'K': { ppm: 0, meq: 0, mmol: 0 },
-                'Ca': { ppm: 0, meq: 0, mmol: 0 },
-                'Mg': { ppm: 0, meq: 0, mmol: 0 },
-                'S': { ppm: 0, meq: 0, mmol: 0 },
-                'Fe': { ppm: 0, meq: 0, mmol: 0 },
-                'Mn': { ppm: 0, meq: 0, mmol: 0 },
-                'Zn': { ppm: 0, meq: 0, mmol: 0 },
-                'Cu': { ppm: 0, meq: 0, mmol: 0 },
-                'B': { ppm: 0, meq: 0, mmol: 0 },
-                'Mo': { ppm: 0, meq: 0, mmol: 0 },
-                'Cl': { ppm: 0, meq: 0, mmol: 0 }
-            };
-
-            selectedFertilizers.forEach(fert => {
-                // 使用實際的化學式進行查找
-                const actualFormula = fertilizerAliases[fert.formula] || fert.formula;
-                const composition = fertilizerComposition[actualFormula];
-                
-                if (composition) {
-                    for (let element in composition) {
-                        if (results[element]) {
-                            // 計算 ppm (mg/L)
-                            const ppm = roundNumber(fert.amount * composition[element], 4);
-                            results[element].ppm += ppm;
-                            
-                            // 計算 mmol/L
-                            const mmol = roundNumber(ppm / molecularWeights[element], 6);
-                            results[element].mmol += mmol;
-                            
-                            // 計算 meq/L
-                            const meq = roundNumber(mmol * Math.abs(ionicCharges[element]), 6);
-                            results[element].meq += meq;
-                        }
-                    }
-                }
-            });
-
-            // 更新結果表格
-            const tbody = document.getElementById('results-body');
+        // 初始化目標養分輸入表格
+        function initializeTargetNutrients() {
+            const tbody = document.getElementById('target-nutrients');
             tbody.innerHTML = '';
-            Object.entries(results).forEach(([element, values]) => {
+            
+            Object.entries(targetNutrients).forEach(([element, values]) => {
                 const tr = document.createElement('tr');
+                tr.className = 'target-row';
+                
                 // 在元素符號後添加離子電荷標示
                 const chargeSymbol = ionicCharges[element] > 0 ? 
                     `<sup>${ionicCharges[element]}+</sup>` : 
@@ -639,55 +528,103 @@
                 
                 tr.innerHTML = `
                     <td>${element}${chargeSymbol}</td>
-                    <td>${formatNumber(values.ppm, 4)}</td>
-                    <td>${formatNumber(values.meq, 6)}</td>
-                    <td>${formatNumber(values.mmol, 6)}</td>
+                    <td><input type="number" class="target-input" data-element="${element}" data-type="ppm" value="0" step="0.0001"></td>
+                    <td><input type="number" class="target-input" data-element="${element}" data-type="meq" value="0" step="0.000001"></td>
+                    <td><input type="number" class="target-input" data-element="${element}" data-type="mmol" value="0" step="0.000001"></td>
                 `;
+                
                 tbody.appendChild(tr);
+            });
+            
+            // 添加輸入事件監聽器
+            document.querySelectorAll('.target-input').forEach(input => {
+                input.addEventListener('input', handleTargetInput);
             });
         }
 
-        function loadPreset1() {
-            selectedFertilizers.length = 0;
+        // 處理目標養分輸入
+        function handleTargetInput(event) {
+            const input = event.target;
+            const element = input.dataset.element;
+            const type = input.dataset.type;
+            const value = parseFloat(input.value) || 0;
             
-            const preset1 = [
-                { formula: 'Ca(NO3)2·4H2O', amount: 94.0 },
-                { formula: 'KNO3', amount: 484.0 },
-                { formula: 'NH4H2PO4', amount: 62.0 },
-                { formula: 'MgSO4·7H2O', amount: 394.0 },
-                { formula: 'Ca(H2PO4)2·H2O', amount: 67.0 },
-                { formula: 'Fe-EDTA·3H2O', amount: 20.0 },
-                { formula: 'H3BO3', amount: 1.2 },
-                { formula: 'MnCl2·4H2O', amount: 0.72 },
-                { formula: 'ZnSO4·7H2O', amount: 0.09 },
-                { formula: 'CuSO4·5H2O', amount: 0.04 },
-                { formula: 'Na2MoO4·2H2O', amount: 0.01 }
-            ];
+            // 更新目標值
+            targetNutrients[element][type] = roundNumber(value, type === 'ppm' ? 4 : 6);
             
-            selectedFertilizers.push(...preset1);
-            updateFertilizerList();
-            calculateNutrients();
+            // 自動計算其他值
+            updateOtherValues(element, type, value);
         }
 
-        function loadPreset2() {
-            selectedFertilizers.length = 0;
+        // 更新其他相關值
+        function updateOtherValues(element, changedType, value) {
+            const inputs = document.querySelectorAll(`.target-input[data-element="${element}"]`);
+            const molecularWeight = molecularWeights[element];
+            const charge = Math.abs(ionicCharges[element]);
             
-            const preset2 = [
-                { formula: 'Ca(NO3)2·4H2O', amount: 950.0 },
-                { formula: 'KNO3', amount: 800.0 },
-                { formula: 'NH4H2PO4', amount: 150.0 },
-                { formula: 'MgSO4·7H2O', amount: 500.0 },
-                { formula: 'Fe-EDTA·3H2O', amount: 16.0 },
-                { formula: 'H3BO3', amount: 1.2 },
-                { formula: 'MnCl2·4H2O', amount: 0.72 },
-                { formula: 'ZnSO4·7H2O', amount: 0.09 },
-                { formula: 'CuSO4·5H2O', amount: 0.04 },
-                { formula: '(NH4)2MoO4', amount: 0.01 }
-            ];
+            inputs.forEach(input => {
+                if (input.dataset.type !== changedType) {
+                    let newValue = 0;
+                    switch (changedType) {
+                        case 'ppm':
+                            if (input.dataset.type === 'mmol') {
+                                newValue = value / molecularWeight;
+                            } else if (input.dataset.type === 'meq') {
+                                newValue = (value / molecularWeight) * charge;
+                            }
+                            break;
+                        case 'meq':
+                            if (input.dataset.type === 'mmol') {
+                                newValue = value / charge;
+                            } else if (input.dataset.type === 'ppm') {
+                                newValue = (value / charge) * molecularWeight;
+                            }
+                            break;
+                    }
+                    input.value = formatNumber(newValue, input.dataset.type === 'ppm' ? 4 : 6);
+                    targetNutrients[element][input.dataset.type] = roundNumber(newValue, input.dataset.type === 'ppm' ? 4 : 6);
+                }
+            });
+        }
+
+        // 添加新的初始化函數
+        function initializeInputModeSwitch() {
+            const buttons = document.querySelectorAll('.mode-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    setInputMode(mode);
+                    
+                    // 更新按鈕狀態
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
             
-            selectedFertilizers.push(...preset2);
-            updateFertilizerList();
-            calculateNutrients();
+            // 初始設置
+            setInputMode(currentInputMode);
+        }
+
+        // 設置輸入模式
+        function setInputMode(mode) {
+            currentInputMode = mode;
+            const inputs = document.querySelectorAll('.target-input');
+            
+            inputs.forEach(input => {
+                if (input.dataset.type === 'mmol') {
+                    // mmol 始終禁用，但保持顯示
+                    input.disabled = true;
+                    input.style.backgroundColor = '#f7fafc';
+                } else if (input.dataset.type === mode) {
+                    // 啟用當前模式的輸入
+                    input.disabled = false;
+                    input.style.backgroundColor = 'white';
+                } else {
+                    // 禁用其他模式的輸入
+                    input.disabled = true;
+                    input.style.backgroundColor = '#f7fafc';
+                }
+            });
         }
 
         // 精度處理工具函數
