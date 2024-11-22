@@ -234,13 +234,33 @@
             background-color: #f7fafc;
             cursor: not-allowed;
         }
+
+        .control-panel {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .calculate-btn {
+            background-color: #48bb78;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.2s ease;
+        }
+
+        .calculate-btn:hover {
+            background-color: #38a169;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>營養液反向計算機</h1>
         
-        <!-- 添加返回按鈕 -->
         <a href="index.html" class="nav-button">
             ← 返回成分計算機
         </a>
@@ -265,30 +285,18 @@
                     <!-- 將由 JavaScript 動態填充 -->
                 </tbody>
             </table>
+            <div class="control-panel">
+                <button onclick="calculateFertilizerAmounts()" class="calculate-btn">
+                    計算肥料用量
+                </button>
+            </div>
         </div>
 
         <!-- 可用肥料清單 -->
         <div class="fertilizer-list">
             <h2>可用肥料</h2>
-            <input type="text" id="fertilizer-search" placeholder="輸入肥料名稱或分子式搜尋...">
-            <select id="fertilizer-select" size="5">
-                <option value="">請選擇肥料...</option>
-            </select>
-            <button onclick="addAvailableFertilizer()" class="test-btn">添加到可用肥料</button>
-        </div>
-
-        <!-- 已選擇的可用肥料 -->
-        <div class="fertilizer-list">
-            <h2>已選擇的可用肥料</h2>
-            <ul id="available-fertilizers"></ul>
-        </div>
-
-        <!-- 計算結果 -->
-        <div class="fertilizer-list">
-            <h2>計算結果</h2>
-            <button onclick="calculateFertilizers()" class="test-btn">計算肥料用量</button>
-            <div id="calculation-results">
-                <!-- 計算結果將由 JavaScript 動態填充 -->
+            <div id="available-fertilizers">
+                <!-- 由 JavaScript 生成 -->
             </div>
         </div>
     </div>
@@ -483,33 +491,14 @@
 
         // 初始化頁面
         function initializePage() {
-            // 初始化肥料選擇器
-            initializeFertilizerSelect();
-            
             // 初始化目標養分輸入表格
             initializeTargetNutrients();
             
-            // 初始化搜尋功能
-            const searchInput = document.getElementById('fertilizer-search');
-            searchInput.addEventListener('input', function(e) {
-                searchFertilizers(e.target.value);
-            });
+            // 初始化所有可用肥料
+            initializeAllFertilizers();
             
             // 初始化模式切換按鈕
             initializeInputModeSwitch();
-        }
-
-        // 初始化肥料選擇器
-        function initializeFertilizerSelect() {
-            const select = document.getElementById('fertilizer-select');
-            select.innerHTML = '<option value="">請選擇肥料...</option>';
-            
-            fertilizerList.forEach(fertilizer => {
-                const option = document.createElement('option');
-                option.value = fertilizer.value;
-                option.textContent = fertilizer.label;
-                select.appendChild(option);
-            });
         }
 
         // 初始化目標養分輸入表格
@@ -641,6 +630,112 @@
             const roundedValue = roundNumber(value, precision);
             // 確保顯示指定的小數位數
             return roundedValue.toFixed(precision);
+        }
+
+        // 初始化所有可用肥料
+        function initializeAllFertilizers() {
+            availableFertilizers = fertilizerList.map(fertilizer => ({
+                formula: fertilizer.value,
+                amount: 0
+            }));
+            updateFertilizerList();
+        }
+
+        // 更新肥料列表顯示
+        function updateFertilizerList() {
+            const container = document.getElementById('available-fertilizers');
+            
+            const ul = document.createElement('ul');
+            availableFertilizers.forEach((fertilizer, index) => {
+                const li = document.createElement('li');
+                const label = fertilizerList.find(f => f.value === fertilizer.formula)?.label || fertilizer.formula;
+                
+                li.innerHTML = `
+                    <div class="fertilizer-info">
+                        <span class="formula">${label}</span>
+                        <div class="amount">
+                            <span class="amount-display">${fertilizer.amount.toFixed(2)} g/L</span>
+                        </div>
+                    </div>
+                `;
+                ul.appendChild(li);
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(ul);
+        }
+
+        // 執行反向計算
+        async function calculateFertilizerAmounts() {
+            // 獲取目標養分含量
+            const targetValues = {};
+            Object.keys(targetNutrients).forEach(element => {
+                targetValues[element] = targetNutrients[element].ppm;
+            });
+
+            // 建立約束矩陣
+            const constraints = [];
+            const fertilizerElements = {};
+            
+            // 遍歷每個肥料，獲取其元素組成
+            availableFertilizers.forEach(fert => {
+                const actualFormula = fertilizerAliases[fert.formula] || fert.formula;
+                const composition = fertilizerComposition[actualFormula];
+                if (composition) {
+                    fertilizerElements[fert.formula] = composition;
+                }
+            });
+
+            // 建立線性規劃問題
+            try {
+                // TODO: 實現線性規劃求解
+                // 1. 目標函數：最小化肥料總量
+                // 2. 約束條件：
+                //    - 每種元素達到目標值
+                //    - 所有肥料用量 >= 0
+                
+                // 更新肥料用量
+                updateFertilizerList();
+                
+            } catch (error) {
+                alert('無法找到合適的解決方案，請調整目標值');
+                console.error('計算錯誤:', error);
+            }
+        }
+
+        // 檢查解是否有效
+        function isValidSolution(solution) {
+            // 檢查是否所有必需的元素都達到目標值
+            return Object.entries(targetNutrients).every(([element, values]) => {
+                if (values.ppm <= 0) return true; // 跳過目標值為 0 的元素
+                const calculated = calculateElementAmount(element, solution);
+                return Math.abs(calculated - values.ppm) / values.ppm < 0.01; // 允許 1% 的誤差
+            });
+        }
+
+        // 計算某個元素的實際含量
+        function calculateElementAmount(element, solution) {
+            let amount = 0;
+            Object.entries(solution).forEach(([formula, weight]) => {
+                const actualFormula = fertilizerAliases[formula] || formula;
+                const composition = fertilizerComposition[actualFormula];
+                if (composition && composition[element]) {
+                    amount += weight * composition[element];
+                }
+            });
+            return amount;
+        }
+
+        // 更新計算結果
+        function updateCalculationResults(solution) {
+            availableFertilizers = availableFertilizers.map(fert => ({
+                ...fert,
+                amount: solution[fert.formula] || 0
+            }));
+            
+            updateFertilizerList();
+            
+            // 可以添加更詳細的結果顯示，如實際達到的養分含量等
         }
     </script>
 </body>
