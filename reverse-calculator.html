@@ -902,7 +902,7 @@
                     fertilizerMatrix,
                     constraints
                 });
-                debugger; // 中斷點：初始化（放大前）
+                // debugger; // 中斷點：初始化（放大前）
 
                 // 放大目標數值
                 this.scaledTargetData = {};
@@ -941,13 +941,13 @@
                     scaledMatrix: this.scaledMatrix,
                     currentState: this.currentState
                 });
-                debugger; // 中斷點：初始化完成
+                // debugger; // 中斷點：初始化完成
             }
 
             // 檢查是否達到目標（使用放大後的值）
             isTargetReached(state) {
                 console.log('檢查目標達成狀態：', state);
-                debugger; // 中斷點：目標檢查
+                // debugger; // 中斷點：目標檢查
 
                 return this.constraints.elements.every(element => {
                     const target = this.scaledTargetData[element];
@@ -970,7 +970,7 @@
                     fertilizer,
                     amount: amount / SCALE_FACTOR // 顯示實際值
                 });
-                debugger; // 中斷點：狀態計算
+                // debugger; // 中斷點：狀態計算
 
                 const newState = {
                     nutrients: {...currentState.nutrients},
@@ -995,7 +995,7 @@
             // 主要求解函數
             solve() {
                 console.log('開始求解過程');
-                debugger; // 中斷點：求解開始
+                // debugger; // 中斷點：求解開始
 
                 const initialKey = this.generateStateKey(this.currentState);
                 this.dpStates.set(initialKey, this.currentState);
@@ -1007,7 +1007,7 @@
                     improved = false;
                     iteration++;
                     console.log(`開始第 ${iteration} 次迭代`);
-                    debugger; // 中斷點：迭代開始
+                    // debugger; // 中斷點：迭代開始
 
                     // 遍歷當前所有狀態
                     for (const [stateKey, state] of this.dpStates) {
@@ -1018,7 +1018,7 @@
                                 newCost: state.cost,
                                 solution: state.solution
                             });
-                            debugger; // 中斷點：找到更好的解
+                            // debugger; // 中斷點：找到更好的解
 
                             this.bestCost = state.cost;
                             this.bestSolution = {...state.solution};
@@ -1038,7 +1038,7 @@
                                     oldCost: this.dpStates.get(newKey)?.cost,
                                     newCost: newState.cost
                                 });
-                                debugger; // 中斷點：狀態更新
+                                // debugger; // 中斷點：狀態更新
 
                                 this.dpStates.set(newKey, newState);
                                 improved = true;
@@ -1062,7 +1062,7 @@
                     finalCost: this.bestCost,
                     solution: this.bestSolution
                 });
-                debugger; // 中斷點：求解完成
+                // debugger; // 中斷點：求解完成
 
                 return this.bestSolution;
             }
@@ -1070,7 +1070,7 @@
             // 生成狀態的唯一鍵值
             generateStateKey(state) {
                 console.log('生成狀態鍵值，當前狀態：', state);
-                debugger; // 中斷點：生成鍵值
+                // debugger; // 中斷點：生成鍵值
                 
                 // 使用養分含量生成鍵值（放大後的值）
                 const key = this.constraints.elements
