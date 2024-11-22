@@ -12,17 +12,19 @@
         }
         .fertilizer-list {
             margin-top: 20px;
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         .fertilizer-list h2 {
             margin-top: 0;
-            color: #333;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #eef2f7;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-size: 1.4em;
         }
         .fertilizer-list ul {
             list-style: none;
@@ -33,89 +35,110 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            margin-bottom: 8px;
-            background-color: white;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background-color: #f8fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
         .fertilizer-list li:hover {
-            background-color: #f0f0f0;
+            background-color: #edf2f7;
+            transform: translateX(2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         .fertilizer-list .fertilizer-info {
             flex-grow: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-right: 20px;
+            padding-right: 24px;
             min-width: 0;
+            gap: 16px;
         }
         .fertilizer-list .formula {
-            font-weight: bold;
-            color: #2c3e50;
-            width: 200px;
+            font-weight: 500;
+            color: #2d3748;
+            flex: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: 0.95em;
         }
         .fertilizer-list .amount {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: flex-end;
         }
         .fertilizer-list .amount-display {
             cursor: pointer;
-            padding: 2px 5px;
-            border-radius: 3px;
-            transition: background-color 0.2s;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: #edf2f7;
+            color: #4a5568;
+            font-family: monospace;
+            transition: all 0.2s ease;
         }
         .fertilizer-list .amount-display:hover {
-            background-color: #e8e8e8;
+            background-color: #e2e8f0;
         }
         .fertilizer-list .amount-input {
-            width: 80px;
-            padding: 2px 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            width: 100px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
             text-align: right;
+            font-family: monospace;
         }
         .fertilizer-list .edit-controls {
             display: flex;
-            gap: 5px;
+            gap: 4px;
         }
         .fertilizer-list .edit-btn {
-            padding: 2px 8px;
+            padding: 4px 8px;
             border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .fertilizer-list .save-btn {
-            background-color: #2ecc71;
-            color: white;
-        }
-        .fertilizer-list .cancel-btn {
-            background-color: #95a5a6;
-            color: white;
-        }
-        .fertilizer-list .remove-btn {
-            background-color: #ff4757;
-            color: white;
-            border: none;
-            padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .fertilizer-list .save-btn {
+            background-color: #48bb78;
+            color: white;
+        }
+        .fertilizer-list .save-btn:hover {
+            background-color: #38a169;
+        }
+        .fertilizer-list .cancel-btn {
+            background-color: #a0aec0;
+            color: white;
+        }
+        .fertilizer-list .cancel-btn:hover {
+            background-color: #718096;
+        }
+        .fertilizer-list .remove-btn {
+            background-color: #fc8181;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
         }
         .fertilizer-list .remove-btn:hover {
-            background-color: #ff6b81;
+            background-color: #f56565;
         }
         .no-fertilizers {
             text-align: center;
-            color: #666;
+            color: #718096;
             font-style: italic;
-            padding: 20px;
+            padding: 24px;
+            background-color: #f7fafc;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e0;
         }
         .result-table {
             width: 100%;
@@ -199,7 +222,8 @@
     <script>
         // 添加名稱對應表
         const fertilizerAliases = {
-            'Fe-EDTA·3H2O': 'C10H12FeN2NaO8·3H2O'
+            'Fe-EDTA·3H2O': 'C10H12FeN2NaO8·3H2O',
+            '螯合鐵': 'C10H12FeN2NaO8·3H2O'
         };
 
         // 分子量對照表
@@ -345,7 +369,7 @@
             { value: 'KNO3', label: '硝酸鉀 KNO3' },
             { value: 'MgSO4', label: '硫酸鎂 MgSO4' },
             { value: 'KH2PO4', label: '磷酸二氫鉀 KH2PO4' },
-            { value: 'Fe-EDTA·3H2O', label: 'Fe-EDTA（三水） Fe-EDTA·3H2O' },
+            { value: 'Fe-EDTA·3H2O', label: '螯合鐵（Fe-EDTA·3H2O）' },
             { value: 'H3BO3', label: '硼酸 H3BO3' },
             { value: 'MnCl2·4H2O', label: '氯化錳（四水） MnCl2·4H2O' },
             { value: 'ZnSO4·7H2O', label: '硫酸鋅（七水） ZnSO4·7H2O' },
@@ -449,9 +473,13 @@
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'fertilizer-info';
                 
+                // 查找肥料的中文名稱
+                const fertilizerInfo = fertilizerList.find(f => f.value === fert.formula);
+                const displayName = fertilizerInfo ? fertilizerInfo.label : fert.formula;
+                
                 const formula = document.createElement('span');
                 formula.className = 'formula';
-                formula.textContent = fert.formula;
+                formula.textContent = displayName;  // 使用中文名稱
                 
                 const amountContainer = document.createElement('div');
                 amountContainer.className = 'amount';
