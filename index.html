@@ -410,10 +410,22 @@
             const amount = document.getElementById('amount').value;
             
             if (select.value && amount) {
-                selectedFertilizers.push({
-                    formula: select.value,
-                    amount: Number(parseFloat(amount).toFixed(3))
-                });
+                const existingIndex = selectedFertilizers.findIndex(f => f.formula === select.value);
+                
+                if (existingIndex !== -1) {
+                    // 如果存在，加上新的數量
+                    selectedFertilizers[existingIndex].amount = roundNumber(
+                        selectedFertilizers[existingIndex].amount + parseFloat(amount)
+                    );
+                } else {
+                    // 如果不存在，新增一條
+                    selectedFertilizers.push({
+                        formula: select.value,
+                        amount: roundNumber(parseFloat(amount))
+                    });
+                }
+                
+                document.getElementById('amount').value = '';
                 updateFertilizerList();
                 calculateNutrients();
             }
@@ -447,7 +459,7 @@
                 // 顯示用量的元素
                 const amountDisplay = document.createElement('span');
                 amountDisplay.className = 'amount-display';
-                amountDisplay.textContent = `${Number(fert.amount).toFixed(3)} mg/L`;
+                amountDisplay.textContent = `${formatNumber(fert.amount)} mg/L`;
                 amountDisplay.onclick = () => startEditing(amountContainer, fert, index);
                 
                 amountContainer.appendChild(amountDisplay);
@@ -489,7 +501,7 @@
             saveBtn.className = 'edit-btn save-btn';
             saveBtn.textContent = '✓';
             saveBtn.onclick = () => {
-                const newAmount = Number(parseFloat(input.value).toFixed(3));
+                const newAmount = roundNumber(parseFloat(input.value));
                 if (newAmount > 0) {
                     selectedFertilizers[index].amount = newAmount;
                     updateFertilizerList();
@@ -551,15 +563,15 @@
                     for (let element in composition) {
                         if (results[element]) {
                             // 計算 ppm (mg/L)
-                            const ppm = fert.amount * composition[element];
+                            const ppm = roundNumber(fert.amount * composition[element], 4);
                             results[element].ppm += ppm;
                             
                             // 計算 mmol/L
-                            const mmol = ppm / molecularWeights[element];
+                            const mmol = roundNumber(ppm / molecularWeights[element], 6);
                             results[element].mmol += mmol;
                             
                             // 計算 meq/L
-                            const meq = mmol * Math.abs(ionicCharges[element]);
+                            const meq = roundNumber(mmol * Math.abs(ionicCharges[element]), 6);
                             results[element].meq += meq;
                         }
                     }
@@ -578,9 +590,9 @@
                 
                 tr.innerHTML = `
                     <td>${element}${chargeSymbol}</td>
-                    <td>${Number(values.ppm).toFixed(4)}</td>
-                    <td>${Number(values.meq).toFixed(6)}</td>
-                    <td>${Number(values.mmol).toFixed(6)}</td>
+                    <td>${formatNumber(values.ppm, 4)}</td>
+                    <td>${formatNumber(values.meq, 6)}</td>
+                    <td>${formatNumber(values.mmol, 6)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -627,6 +639,22 @@
             selectedFertilizers.push(...preset2);
             updateFertilizerList();
             calculateNutrients();
+        }
+
+        // 精度處理工具函數
+        function roundNumber(value, precision = 3) {
+            if (typeof value !== 'number' || isNaN(value)) return 0;
+            const multiplier = Math.pow(10, precision);
+            // 使用四捨六入五成雙規則
+            const roundedValue = Math.round(value * multiplier) / multiplier;
+            return roundedValue;
+        }
+
+        // 格式化顯示數值
+        function formatNumber(value, precision = 3) {
+            const roundedValue = roundNumber(value, precision);
+            // 確保顯示指定的小數位數
+            return roundedValue.toFixed(precision);
         }
     </script>
 </body>
