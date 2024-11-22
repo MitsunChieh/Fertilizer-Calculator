@@ -667,35 +667,23 @@
 
         // 執行反向計算
         async function calculateFertilizerAmounts() {
-            // 獲取目標養分含量
-            const targetValues = {};
-            Object.keys(targetNutrients).forEach(element => {
-                targetValues[element] = targetNutrients[element].ppm;
-            });
-
-            // 建立約束矩陣
-            const constraints = [];
-            const fertilizerElements = {};
+            // 1. 準備數據
+            const targetData = prepareTargetData();
+            if (Object.keys(targetData).length === 0) {
+                alert('請設定至少一個目標養分含量');
+                return;
+            }
             
-            // 遍歷每個肥料，獲取其元素組成
-            availableFertilizers.forEach(fert => {
-                const actualFormula = fertilizerAliases[fert.formula] || fert.formula;
-                const composition = fertilizerComposition[actualFormula];
-                if (composition) {
-                    fertilizerElements[fert.formula] = composition;
-                }
-            });
-
-            // 建立線性規劃問題
+            const fertilizerMatrix = prepareFertilizerMatrix();
+            const constraints = prepareConstraintMatrix(targetData, fertilizerMatrix);
+            
             try {
-                // TODO: 實現線性規劃求解
-                // 1. 目標函數：最小化肥料總量
-                // 2. 約束條件：
-                //    - 每種元素達到目標值
-                //    - 所有肥料用量 >= 0
+                // 使用動態規劃求解器
+                const solver = new DPSolver(targetData, fertilizerMatrix, constraints);
+                const solution = solver.solve();
                 
-                // 更新肥料用量
-                updateFertilizerList();
+                // 更新結果
+                updateCalculationResults(solution);
                 
             } catch (error) {
                 alert('無法找到合適的解決方案，請調整目標值');
@@ -736,6 +724,281 @@
             updateFertilizerList();
             
             // 可以添加更詳細的結果顯示，如實際達到的養分含量等
+        }
+
+        // 準備目標養分數據
+        function prepareTargetData() {
+            const targetData = {};
+            Object.entries(targetNutrients).forEach(([element, values]) => {
+                if (values[currentInputMode] > 0) {
+                    targetData[element] = {
+                        target: values[currentInputMode],
+                        tolerance: values[currentInputMode] * TOLERANCE_PERCENTAGE,  // 改為5%誤差
+                        unit: currentInputMode,
+                        min: values[currentInputMode] * (1 - TOLERANCE_PERCENTAGE),
+                        max: values[currentInputMode] * (1 + TOLERANCE_PERCENTAGE)
+                    };
+                }
+            });
+            
+            if (Object.keys(targetData).length === 0) {
+                throw new Error('未設定任何目標養分含量');
+            }
+            
+            return targetData;
+        }
+
+        // 準備肥料成分矩陣
+        function prepareFertilizerMatrix() {
+            const matrix = {};
+            const validFertilizers = availableFertilizers.filter(fert => {
+                const actualFormula = fertilizerAliases[fert.formula] || fert.formula;
+                return fertilizerComposition[actualFormula] !== undefined;
+            });
+
+            if (validFertilizers.length === 0) {
+                throw new Error('沒有可用的肥料');
+            }
+
+            validFertilizers.forEach(fert => {
+                const actualFormula = fertilizerAliases[fert.formula] || fert.formula;
+                const composition = fertilizerComposition[actualFormula];
+                matrix[fert.formula] = {
+                    composition: {},
+                    price: fertilizerPrices[actualFormula] || 0  // 添加價格信息
+                };
+                
+                Object.entries(composition).forEach(([element, content]) => {
+                    if (element in targetNutrients && content > 0) {
+                        matrix[fert.formula].composition[element] = content;
+                    }
+                });
+            });
+
+            return matrix;
+        }
+
+        // 建立約束條件矩陣
+        function prepareConstraintMatrix(targetData, fertilizerMatrix) {
+            const constraints = {
+                elements: Object.keys(targetData),
+                fertilizers: Object.keys(fertilizerMatrix),
+                matrix: {},
+                bounds: targetData,
+                minAmount: 0,
+                maxAmount: 10,
+                totalMaxAmount: 20,
+                prices: {}  // 添加價格信息
+            };
+            
+            // 建立元素-肥料對應矩陣
+            constraints.elements.forEach(element => {
+                constraints.matrix[element] = {};
+                constraints.fertilizers.forEach(fertilizer => {
+                    constraints.matrix[element][fertilizer] = 
+                        fertilizerMatrix[fertilizer].composition[element] || 0;
+                });
+            });
+            
+            // 添加價格訊息
+            constraints.fertilizers.forEach(fertilizer => {
+                constraints.prices[fertilizer] = fertilizerMatrix[fertilizer].price;
+            });
+            
+            return constraints;
+        }
+
+        // 添加在全局常數區域
+        const TOLERANCE_PERCENTAGE = 0.05; // 5% 誤差
+        const fertilizerPrices = {
+            'Ca(NO3)2·4H2O': 50,    // 硝酸鈣（四水），非現況價格
+            'NH4H2PO4': 80,          // 磷酸一銨，非現況價格
+            'MgSO4·7H2O': 20,        // 硫酸鎂（七水），非現況價格
+            'Ca(H2PO4)2·H2O': 60,    // 磷酸一鈣（一水），非現況價格
+            'Ca(NO3)2': 999,         // 硝酸鈣，尚未提供價格
+            'KNO3': 30,              // 硝酸鉀，非現況價格
+            'MgSO4': 999,            // 硫酸鎂，尚未提供價格
+            'KH2PO4': 999,           // 磷酸二氫鉀，尚未提供價格
+            'Fe-EDTA·3H2O': 500,     // 螯合鐵，非現況價格
+            'H3BO3': 60,             // 硼酸，非現況價格
+            'MnCl2·4H2O': 55,        // 氯化錳（四水），非現況價格
+            'ZnSO4·7H2O': 45,        // 硫酸鋅（七水），非現況價格
+            'CuSO4·5H2O': 40,        // 硫酸銅（五水），非現況價格
+            'Na2MoO4·2H2O': 1400,    // 鉬酸鈉（二水），非現況價格
+            '(NH4)6Mo7O24·4H2O': 999, // 仲鉬酸銨（四水），尚未提供價格
+            '(NH4)2MoO4': 999        // 鉬酸銨，尚未提供價格
+        };
+
+        // 計算特定解的總成本
+        function calculateTotalCost(solution, fertilizerMatrix) {
+            let totalCost = 0;
+            Object.entries(solution).forEach(([formula, amount]) => {
+                const actualFormula = fertilizerAliases[formula] || formula;
+                const price = fertilizerMatrix[formula].price;
+                totalCost += amount * price;  // amount 是 g/L，需要轉換為 kg
+            });
+            return totalCost;
+        }
+
+        // 計算解的有效性（考慮誤差範圍）
+        function isValidSolution(solution, targetData) {
+            return Object.entries(targetData).every(([element, data]) => {
+                const calculated = calculateElementAmount(element, solution);
+                return calculated >= data.min && calculated <= data.max;
+            });
+        }
+
+        // 全域常數定義
+        const STEP_SIZE = 0.01;        // 最小調整單位 (mg/L)
+        const MAX_ITERATIONS = 1000;    // 最大迭代次數
+        const TOLERANCE = 0.05;        // 允許誤差 5%
+        const MIN_IMPROVEMENT = 0.001;  // 最小改善閾值
+
+        class FertilizerSolver {
+            constructor(targetData, fertilizerMatrix, constraints) {
+                this.targetData = targetData;
+                this.fertilizerMatrix = fertilizerMatrix;
+                this.constraints = constraints;
+                this.stepSize = STEP_SIZE;
+                this.bestSolution = null;
+                this.bestCost = Infinity;
+                this.currentIteration = 0;
+                
+                // 添加精確度控制
+                this.precision = {
+                    amount: 0.01,      // mg/L
+                    cost: 0.001,       // 成本計算精確度
+                    nutrient: 0.01     // 養分含量計算精確度
+                };
+            }
+
+            // 四捨五入到指定精確度
+            round(value, precision) {
+                return Math.round(value / precision) * precision;
+            }
+
+            // 評估當前解的品質（考慮精確度）
+            evaluateSolution(solution) {
+                // 檢查是否滿足所有養分需求
+                if (!this.isValidSolution(solution)) {
+                    return Infinity;
+                }
+                
+                // 計算總成本（考慮精確度）
+                const cost = this.calculateTotalCost(solution);
+                return this.round(cost, this.precision.cost);
+            }
+        }
+
+        class DPSolver extends FertilizerSolver {
+            constructor(targetData, fertilizerMatrix, constraints) {
+                super(targetData, fertilizerMatrix, constraints);
+                
+                // 動態規劃相關參數
+                this.dpStates = new Map();  // 狀態快取
+                this.currentState = {
+                    nutrients: {},          // 當前養分含量
+                    cost: 0,               // 當前成本
+                    solution: {}           // 當前解
+                };
+                
+                // 初始化當前養分含量
+                this.constraints.elements.forEach(element => {
+                    this.currentState.nutrients[element] = 0;
+                });
+            }
+
+            // 生成狀態的唯一鍵值
+            generateStateKey(state) {
+                return this.constraints.elements
+                    .map(element => this.round(state.nutrients[element], this.precision.nutrient))
+                    .join('|');
+            }
+
+            // 檢查是否達到目標
+            isTargetReached(state) {
+                return this.constraints.elements.every(element => {
+                    const target = this.targetData[element];
+                    const current = state.nutrients[element];
+                    return current >= target.min && current <= target.max;
+                });
+            }
+
+            // 計算添加肥料後的新狀態
+            calculateNewState(currentState, fertilizer, amount) {
+                const newState = {
+                    nutrients: {...currentState.nutrients},
+                    cost: currentState.cost,
+                    solution: {...currentState.solution}
+                };
+
+                // 更新養分含量
+                this.constraints.elements.forEach(element => {
+                    const contribution = this.constraints.matrix[element][fertilizer] * amount;
+                    newState.nutrients[element] = this.round(
+                        newState.nutrients[element] + contribution,
+                        this.precision.nutrient
+                    );
+                });
+
+                // 更新成本和解
+                const fertilizerPrice = this.constraints.prices[fertilizer];
+                newState.cost = this.round(
+                    newState.cost + fertilizerPrice * amount,
+                    this.precision.cost
+                );
+                newState.solution[fertilizer] = this.round(
+                    (newState.solution[fertilizer] || 0) + amount,
+                    this.precision.amount
+                );
+
+                return newState;
+            }
+
+            // 主要求解函數
+            solve() {
+                this.dpStates.clear();
+                const initialKey = this.generateStateKey(this.currentState);
+                this.dpStates.set(initialKey, this.currentState);
+
+                let iteration = 0;
+                let improved = true;
+
+                while (improved && iteration < MAX_ITERATIONS) {
+                    improved = false;
+                    iteration++;
+
+                    // 遍歷當前所有狀態
+                    for (const [stateKey, state] of this.dpStates) {
+                        // 如果已達到目標且成本更低，更新最佳解
+                        if (this.isTargetReached(state) && state.cost < this.bestCost) {
+                            this.bestCost = state.cost;
+                            this.bestSolution = {...state.solution};
+                            improved = true;
+                            continue;
+                        }
+
+                        // 嘗試添加每種肥料
+                        for (const fertilizer of this.constraints.fertilizers) {
+                            const newState = this.calculateNewState(state, fertilizer, this.stepSize);
+                            const newKey = this.generateStateKey(newState);
+
+                            // 檢查新狀態是否更好
+                            const existingState = this.dpStates.get(newKey);
+                            if (!existingState || existingState.cost > newState.cost) {
+                                this.dpStates.set(newKey, newState);
+                                improved = true;
+                            }
+                        }
+                    }
+                }
+
+                if (this.bestSolution === null) {
+                    throw new Error('無法找到有效解');
+                }
+
+                return this.bestSolution;
+            }
         }
     </script>
 </body>
