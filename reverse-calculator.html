@@ -484,6 +484,16 @@
 
         let currentInputMode = 'ppm';  // 預設使用 ppm 模式
 
+        // 全域常數定義
+        const SCALE_FACTOR = 1000000;     // 放大倍數（100萬倍）
+        const STEP_SIZE = 0.01;           // 最小調整單位 (mg/L)
+        const MAX_ITERATIONS = 1000;      // 最大迭代次數
+        const TOLERANCE = 0.05;           // 允許誤差 5%
+        const MIN_IMPROVEMENT = 0.001;    // 最小改善閾值
+
+        // 調整後的步進大小（放大後的值）
+        const SCALED_STEP_SIZE = Math.round(STEP_SIZE * SCALE_FACTOR);  // 放大後的最小調整單位
+
         // 初始化頁面
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
@@ -848,12 +858,6 @@
             });
         }
 
-        // 全域常數定義
-        const STEP_SIZE = 0.01;        // 最小調整單位 (mg/L)
-        const MAX_ITERATIONS = 1000;    // 最大迭代次數
-        const TOLERANCE = 0.05;        // 允許誤差 5%
-        const MIN_IMPROVEMENT = 0.001;  // 最小改善閾值
-
         class FertilizerSolver {
             constructor(targetData, fertilizerMatrix, constraints) {
                 this.targetData = targetData;
@@ -893,43 +897,60 @@
         class DPSolver extends FertilizerSolver {
             constructor(targetData, fertilizerMatrix, constraints) {
                 super(targetData, fertilizerMatrix, constraints);
-                console.log('初始化求解器：', {
+                console.log('初始化求解器（放大前）：', {
                     targetData,
                     fertilizerMatrix,
                     constraints
                 });
-                debugger; // 中斷點：初始化
-                
-                // 動態規劃相關參數
-                this.dpStates = new Map();  // 狀態快取
+                debugger; // 中斷點：初始化（放大前）
+
+                // 放大目標數值
+                this.scaledTargetData = {};
+                Object.entries(this.targetData).forEach(([element, data]) => {
+                    this.scaledTargetData[element] = {
+                        min: Math.round(data.min * SCALE_FACTOR),
+                        max: Math.round(data.max * SCALE_FACTOR),
+                        target: Math.round(data.target * SCALE_FACTOR)
+                    };
+                });
+
+                // 放大肥料矩陣
+                this.scaledMatrix = {};
+                Object.entries(this.constraints.matrix).forEach(([element, fertilizers]) => {
+                    this.scaledMatrix[element] = {};
+                    Object.entries(fertilizers).forEach(([fertilizer, value]) => {
+                        this.scaledMatrix[element][fertilizer] = Math.round(value * SCALE_FACTOR);
+                    });
+                });
+
+                // 初始化狀態
+                this.dpStates = new Map();
                 this.currentState = {
                     nutrients: {},          // 當前養分含量
                     cost: 0,               // 當前成本
                     solution: {}           // 當前解
                 };
-                
-                // 初始化當前養分含量
+
+                // 初始化當前養分含量（使用放大後的值）
                 this.constraints.elements.forEach(element => {
                     this.currentState.nutrients[element] = 0;
                 });
+
+                console.log('初始化完成（放大後）：', {
+                    scaledTargetData: this.scaledTargetData,
+                    scaledMatrix: this.scaledMatrix,
+                    currentState: this.currentState
+                });
+                debugger; // 中斷點：初始化完成
             }
 
-            // 生成狀態的唯一鍵值
-            generateStateKey(state) {
-                const key = this.constraints.elements
-                    .map(element => this.round(state.nutrients[element], this.precision.nutrient))
-                    .join('|');
-                console.log('生成狀態鍵值：', { state, key });
-                return key;
-            }
-
-            // 檢查是否達到目標
+            // 檢查是否達到目標（使用放大後的值）
             isTargetReached(state) {
                 console.log('檢查目標達成狀態：', state);
                 debugger; // 中斷點：目標檢查
-                
-                const result = this.constraints.elements.every(element => {
-                    const target = this.targetData[element];
+
+                return this.constraints.elements.every(element => {
+                    const target = this.scaledTargetData[element];
                     const current = state.nutrients[element];
                     const reached = current >= target.min && current <= target.max;
                     console.log(`元素 ${element}：`, {
@@ -940,51 +961,33 @@
                     });
                     return reached;
                 });
-                return result;
             }
 
-            // 計算添加肥料後的新狀態
+            // 計算新狀態（使用放大後的值）
             calculateNewState(currentState, fertilizer, amount) {
                 console.log('計算新狀態：', {
                     currentState,
                     fertilizer,
-                    amount
+                    amount: amount / SCALE_FACTOR // 顯示實際值
                 });
                 debugger; // 中斷點：狀態計算
-                
+
                 const newState = {
                     nutrients: {...currentState.nutrients},
                     cost: currentState.cost,
                     solution: {...currentState.solution}
                 };
 
-                // 更新養分含量並記錄變化
+                // 使用放大後的矩陣計算
                 this.constraints.elements.forEach(element => {
-                    const contribution = this.constraints.matrix[element][fertilizer] * amount;
-                    const oldValue = newState.nutrients[element];
-                    newState.nutrients[element] = this.round(
-                        newState.nutrients[element] + contribution,
-                        this.precision.nutrient
-                    );
-                    console.log(`元素 ${element} 變化：`, {
-                        old: oldValue,
-                        contribution,
-                        new: newState.nutrients[element]
-                    });
+                    const contribution = this.scaledMatrix[element][fertilizer] * (amount / SCALE_FACTOR);
+                    newState.nutrients[element] = Math.round(newState.nutrients[element] + contribution);
                 });
 
-                // 更新成本和解
+                // 更新成本（使用原始價格）
                 const fertilizerPrice = this.constraints.prices[fertilizer];
-                const oldCost = newState.cost;
-                newState.cost = this.round(
-                    newState.cost + fertilizerPrice * amount,
-                    this.precision.cost
-                );
-                console.log('成本變化：', {
-                    old: oldCost,
-                    addition: fertilizerPrice * amount,
-                    new: newState.cost
-                });
+                newState.cost += fertilizerPrice * (amount / SCALE_FACTOR);
+                newState.solution[fertilizer] = (newState.solution[fertilizer] || 0) + (amount / SCALE_FACTOR);
 
                 return newState;
             }
@@ -993,8 +996,7 @@
             solve() {
                 console.log('開始求解過程');
                 debugger; // 中斷點：求解開始
-                
-                this.dpStates.clear();
+
                 const initialKey = this.generateStateKey(this.currentState);
                 this.dpStates.set(initialKey, this.currentState);
 
@@ -1017,7 +1019,7 @@
                                 solution: state.solution
                             });
                             debugger; // 中斷點：找到更好的解
-                            
+
                             this.bestCost = state.cost;
                             this.bestSolution = {...state.solution};
                             improved = true;
@@ -1026,25 +1028,24 @@
 
                         // 嘗試添加每種肥料
                         for (const fertilizer of this.constraints.fertilizers) {
-                            const newState = this.calculateNewState(state, fertilizer, this.stepSize);
+                            const newState = this.calculateNewState(state, fertilizer, SCALED_STEP_SIZE);
                             const newKey = this.generateStateKey(newState);
 
-                            // 檢查新狀態是否更好
-                            const existingState = this.dpStates.get(newKey);
-                            if (!existingState || existingState.cost > newState.cost) {
+                            if (!this.dpStates.has(newKey) || this.dpStates.get(newKey).cost > newState.cost) {
                                 console.log('更新狀態：', {
-                                    key: newKey,
-                                    oldCost: existingState?.cost,
+                                    fertilizer,
+                                    amount: SCALED_STEP_SIZE / SCALE_FACTOR, // 顯示實際值
+                                    oldCost: this.dpStates.get(newKey)?.cost,
                                     newCost: newState.cost
                                 });
                                 debugger; // 中斷點：狀態更新
-                                
+
                                 this.dpStates.set(newKey, newState);
                                 improved = true;
                             }
                         }
                     }
-                    
+
                     console.log(`第 ${iteration} 次迭代結束`, {
                         improved,
                         statesCount: this.dpStates.size,
@@ -1052,19 +1053,32 @@
                     });
                 }
 
-                if (this.bestSolution === null) {
-                    console.error('無法找到有效解');
+                if (!this.bestSolution) {
                     throw new Error('無法找到有效解');
                 }
 
-                console.log('求解完成：', {
+                console.log('求解完成', {
                     iterations: iteration,
                     finalCost: this.bestCost,
                     solution: this.bestSolution
                 });
                 debugger; // 中斷點：求解完成
-                
+
                 return this.bestSolution;
+            }
+
+            // 生成狀態的唯一鍵值
+            generateStateKey(state) {
+                console.log('生成狀態鍵值，當前狀態：', state);
+                debugger; // 中斷點：生成鍵值
+                
+                // 使用養分含量生成鍵值（放大後的值）
+                const key = this.constraints.elements
+                    .map(element => Math.round(state.nutrients[element]))  // 確保是整數
+                    .join('|');
+                    
+                console.log('生成的鍵值：', key);
+                return key;
             }
         }
     </script>
