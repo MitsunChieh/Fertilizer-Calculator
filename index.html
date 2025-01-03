@@ -458,6 +458,14 @@
                     }
                 }
             });
+
+            // 添加 Enter 鍵支援
+            const amountInput = document.getElementById('amount');
+            amountInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    addFertilizer();
+                }
+            });
         });
 
         function addFertilizer() {
