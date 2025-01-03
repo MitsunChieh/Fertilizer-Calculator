@@ -243,6 +243,19 @@
         .clear-btn:hover {
             background-color: #c53030;
         }
+
+        #export-container {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -268,6 +281,11 @@
                 <span class="tooltip">Hoagland Solution</span>
             </button>
             <button id="clear-button" onclick="clearFormula()" class="clear-btn">清空配方</button>
+            <button id="export-button" onclick="exportFormula()" class="test-btn">匯出配方</button>
+            <div id="export-container" style="display: none;">
+                <textarea id="export-textarea" readonly style="width: 100%; height: 100px; margin-top: 10px;"></textarea>
+                <button onclick="copyToClipboard()" class="test-btn">一鍵複製</button>
+            </div>
             <input type="text" id="fertilizer-search" placeholder="輸入肥料名稱或分子式搜尋...">
             <select id="fertilizer-select" size="5">
                 <option value="">請選擇肥料...</option>
@@ -810,6 +828,32 @@
             const roundedValue = roundNumber(value, precision);
             // 確保顯示指定的小數位數
             return roundedValue.toFixed(precision);
+        }
+
+        function exportFormula() {
+            const exportContainer = document.getElementById('export-container');
+            const exportTextarea = document.getElementById('export-textarea');
+            const formulaJson = JSON.stringify(selectedFertilizers, null, 2);
+            exportTextarea.value = formulaJson;
+            exportContainer.style.display = 'block';
+
+            // Add event listener to hide the export container when clicking outside
+            document.addEventListener('click', handleClickOutside, true);
+        }
+
+        function copyToClipboard() {
+            const exportTextarea = document.getElementById('export-textarea');
+            exportTextarea.select();
+            document.execCommand('copy');
+            alert('配方已複製到剪貼簿');
+        }
+
+        function handleClickOutside(event) {
+            const exportContainer = document.getElementById('export-container');
+            if (!exportContainer.contains(event.target)) {
+                exportContainer.style.display = 'none';
+                document.removeEventListener('click', handleClickOutside, true);
+            }
         }
     </script>
 </body>
