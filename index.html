@@ -194,6 +194,21 @@
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
+        .clear-btn {
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-btn:hover {
+            background-color: #c53030;
+        }
     </style>
 </head>
 <body>
@@ -208,6 +223,7 @@
             <h2>選擇肥料</h2>
             <button id="preset-button-1" onclick="loadPreset1()" class="test-btn">預設配方 1</button>
             <button id="preset-button-2" onclick="loadPreset2()" class="test-btn">預設配方 2</button>
+            <button id="clear-button" onclick="clearFormula()" class="clear-btn">清空配方</button>
             <input type="text" id="fertilizer-search" placeholder="輸入肥料名稱或分子式搜尋...">
             <select id="fertilizer-select" size="5">
                 <option value="">請選擇肥料...</option>
@@ -705,6 +721,12 @@
             ];
             
             selectedFertilizers.push(...preset2);
+            updateFertilizerList();
+            calculateNutrients();
+        }
+
+        function clearFormula() {
+            selectedFertilizers.length = 0;
             updateFertilizerList();
             calculateNutrients();
         }
