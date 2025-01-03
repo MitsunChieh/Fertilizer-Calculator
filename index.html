@@ -172,10 +172,44 @@
             cursor: pointer;
             margin-bottom: 10px;
             transition: background-color 0.2s;
+            position: relative;
         }
 
         .test-btn:hover {
             background-color: #2980b9;
+        }
+
+        .test-btn .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position the tooltip above the button */
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .test-btn .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* At the bottom of the tooltip */
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+
+        .test-btn:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* 添加導航按鈕樣式 */
@@ -223,6 +257,10 @@
             <h2>選擇肥料</h2>
             <button id="preset-button-1" onclick="loadPreset1()" class="test-btn">預設配方 1</button>
             <button id="preset-button-2" onclick="loadPreset2()" class="test-btn">預設配方 2</button>
+            <button id="preset-button-3" onclick="loadPreset3()" class="test-btn">
+                預設配方 3
+                <span class="tooltip">Hoagland Solution</span>
+            </button>
             <button id="clear-button" onclick="clearFormula()" class="clear-btn">清空配方</button>
             <input type="text" id="fertilizer-search" placeholder="輸入肥料名稱或分子式搜尋...">
             <select id="fertilizer-select" size="5">
@@ -721,6 +759,27 @@
             ];
             
             selectedFertilizers.push(...preset2);
+            updateFertilizerList();
+            calculateNutrients();
+        }
+
+        function loadPreset3() {
+            selectedFertilizers.length = 0;
+            
+            const preset3 = [
+                { formula: 'KNO3', amount: 505.0 },
+                { formula: 'Ca(NO3)2·4H2O', amount: 1180.0 },
+                { formula: 'MgSO4·7H2O', amount: 493.0 },
+                { formula: 'KH2PO4', amount: 136.0 },
+                { formula: 'H3BO3', amount: 2.86 },
+                { formula: 'MnCl2·4H2O', amount: 1.81 },
+                { formula: 'ZnSO4·7H2O', amount: 0.22 },
+                { formula: 'CuSO4·5H2O', amount: 0.08 },
+                { formula: 'H2MoO4·H2O', amount: 0.09 },
+                { formula: 'C12H12Fe2O18', amount: 5.0 }
+            ];
+            
+            selectedFertilizers.push(...preset3);
             updateFertilizerList();
             calculateNutrients();
         }
