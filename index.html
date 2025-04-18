@@ -274,10 +274,14 @@
             </button>
             <button id="preset-button-2" onclick="loadPreset2()" class="test-btn">
                 預設配方 2
-                <span class="tooltip">現代田園與養液栽培 p526 葉菜通用基本養液</span>
+                <span class="tooltip">台中農改場葉菜通用配方</span>
             </button>
             <button id="preset-button-3" onclick="loadPreset3()" class="test-btn">
                 預設配方 3
+                <span class="tooltip">現代田園與養液栽培 p526 葉菜通用基本養液</span>
+            </button>
+            <button id="preset-button-4" onclick="loadPreset4()" class="test-btn">
+                預設配方 4
                 <span class="tooltip">Hoagland Solution</span>
             </button>
             <button id="clear-button" onclick="clearFormula()" class="clear-btn">清空配方</button>
@@ -772,6 +776,28 @@
             selectedFertilizers.length = 0;
             
             const preset2 = [
+                { formula: 'Ca(NO3)2·4H2O', amount: 1180.0 },
+                { formula: 'KNO3', amount: 606.0 },
+                { formula: 'NH4H2PO4', amount: 77.0 },
+                { formula: 'MgSO4·7H2O', amount: 492.0 },
+                { formula: 'Ca(H2PO4)2·H2O', amount: 84.0 },
+                { formula: 'Fe-EDTA·3H2O', amount: 20.0 },
+                { formula: 'H3BO3', amount: 1.2 },
+                { formula: 'MnCl2·4H2O', amount: 0.72 },
+                { formula: 'ZnSO4·7H2O', amount: 0.09 },
+                { formula: 'CuSO4·5H2O', amount: 0.04 },
+                { formula: 'Na2MoO4·2H2O', amount: 0.01 },
+            ];
+            
+            selectedFertilizers.push(...preset2);
+            updateFertilizerList();
+            calculateNutrients();
+        }
+
+        function loadPreset3() {
+            selectedFertilizers.length = 0;
+            
+            const preset3 = [
                 { formula: 'Ca(NO3)2·4H2O', amount: 950.0 },
                 { formula: 'KNO3', amount: 800.0 },
                 { formula: 'NH4H2PO4', amount: 150.0 },
@@ -784,15 +810,15 @@
                 { formula: '(NH4)2MoO4', amount: 0.01 }
             ];
             
-            selectedFertilizers.push(...preset2);
+            selectedFertilizers.push(...preset3);
             updateFertilizerList();
             calculateNutrients();
         }
 
-        function loadPreset3() {
+        function loadPreset4() {
             selectedFertilizers.length = 0;
             
-            const preset3 = [
+            const preset4 = [
                 { formula: 'KNO3', amount: 505.0 },
                 { formula: 'Ca(NO3)2·4H2O', amount: 1180.0 },
                 { formula: 'MgSO4·7H2O', amount: 493.0 },
@@ -805,7 +831,7 @@
                 { formula: 'C12H12Fe2O18', amount: 5.0 }
             ];
             
-            selectedFertilizers.push(...preset3);
+            selectedFertilizers.push(...preset4);
             updateFertilizerList();
             calculateNutrients();
         }
